@@ -15,14 +15,10 @@ interface Colors {
   textSecondary: string;
   textTertiary: string;
   
-  // Primary colors (Catholic theme)
+  // Primary colors
   primary: string;
   primaryLight: string;
   primaryDark: string;
-  
-  // Accent colors
-  accent: string;
-  accentLight: string;
   
   // Status colors
   success: string;
@@ -33,14 +29,6 @@ interface Colors {
   border: string;
   shadow: string;
   overlay: string;
-  
-  // Liturgical colors
-  liturgicalGold: string;
-  liturgicalPurple: string;
-  liturgicalRose: string;
-  liturgicalGreen: string;
-  liturgicalRed: string;
-  liturgicalWhite: string;
 }
 
 interface Theme {
@@ -49,67 +37,47 @@ interface Theme {
 }
 
 const lightColors: Colors = {
-  background: '#FFF8DC', // Cornsilk
-  surface: '#FFFFFF',
-  card: '#F8F8FF',
+  background: '#FFFFFF',
+  surface: '#F8F9FA',
+  card: '#FFFFFF',
   
-  text: '#4A2C2A',
-  textSecondary: '#8B5A2B',
-  textTertiary: '#D4A574',
+  text: '#1A1A1A',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
   
-  primary: '#8B5A2B',
-  primaryLight: '#D4A574',
-  primaryDark: '#4A2C2A',
+  primary: '#3B82F6',
+  primaryLight: '#60A5FA',
+  primaryDark: '#1D4ED8',
   
-  accent: '#FFD700',
-  accentLight: '#FFF8DC',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
   
-  success: '#98FB98',
-  warning: '#FFB347',
-  error: '#FF6B6B',
-  
-  border: '#E0E0E0',
+  border: '#E5E7EB',
   shadow: '#000000',
   overlay: 'rgba(0, 0, 0, 0.5)',
-  
-  liturgicalGold: '#FFD700',
-  liturgicalPurple: '#DDA0DD',
-  liturgicalRose: '#FFB6C1',
-  liturgicalGreen: '#98FB98',
-  liturgicalRed: '#FF6B6B',
-  liturgicalWhite: '#FFFFFF',
 };
 
 const darkColors: Colors = {
-  background: '#1A1A1A',
-  surface: '#2D2D2D',
-  card: '#3A3A3A',
+  background: '#111827',
+  surface: '#1F2937',
+  card: '#374151',
   
-  text: '#FFFFFF',
-  textSecondary: '#D4A574',
-  textTertiary: '#8B5A2B',
+  text: '#F9FAFB',
+  textSecondary: '#D1D5DB',
+  textTertiary: '#9CA3AF',
   
-  primary: '#D4A574',
-  primaryLight: '#F0E68C',
-  primaryDark: '#8B5A2B',
+  primary: '#60A5FA',
+  primaryLight: '#93C5FD',
+  primaryDark: '#3B82F6',
   
-  accent: '#FFD700',
-  accentLight: '#FFF8DC',
+  success: '#34D399',
+  warning: '#FBBF24',
+  error: '#F87171',
   
-  success: '#4CAF50',
-  warning: '#FF9800',
-  error: '#F44336',
-  
-  border: '#404040',
+  border: '#4B5563',
   shadow: '#000000',
   overlay: 'rgba(0, 0, 0, 0.7)',
-  
-  liturgicalGold: '#FFD700',
-  liturgicalPurple: '#9C27B0',
-  liturgicalRose: '#E91E63',
-  liturgicalGreen: '#4CAF50',
-  liturgicalRed: '#F44336',
-  liturgicalWhite: '#FFFFFF',
 };
 
 interface ThemeContextType {

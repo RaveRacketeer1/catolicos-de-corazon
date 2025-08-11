@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Heart, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, UserPlus, Smartphone } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function LoginScreen() {
@@ -24,14 +24,14 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   
-  const { signIn, signUp, signInWithApple, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithApple, signInWithGoogle, signInWithFacebook } = useAuth();
   const { theme } = useTheme();
 
   const handleEmailAuth = async () => {
     if (!email || !password || (isSignUp && !name)) {
       Alert.alert('Error', isSignUp 
-        ? 'Por favor completa todos los campos' 
-        : 'Por favor ingresa tu email y contraseña'
+        ? 'Please fill in all fields' 
+        : 'Please enter your email and password'
       );
       return;
     }
@@ -43,7 +43,7 @@ export default function LoginScreen() {
       } else {
         await signIn(email, password);
       }
-      router.replace('/subscription');
+      // Navigation handled by AuthContext
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -51,23 +51,21 @@ export default function LoginScreen() {
     }
   };
 
-  const handleAppleSignIn = async () => {
+  const handleSocialAuth = async (provider: 'apple' | 'google' | 'facebook') => {
     setIsLoading(true);
     try {
-      await signInWithApple();
-      router.replace('/subscription');
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
-      router.replace('/subscription');
+      switch (provider) {
+        case 'apple':
+          await signInWithApple();
+          break;
+        case 'google':
+          await signInWithGoogle();
+          break;
+        case 'facebook':
+          await signInWithFacebook();
+          break;
+      }
+      // Navigation handled by AuthContext
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -81,23 +79,20 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
-        colors={[theme.colors.primaryDark, theme.colors.primary, theme.colors.primaryLight]}
+        colors={[theme.colors.primary, theme.colors.primaryLight]}
         style={styles.background}
       >
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <LinearGradient
-              colors={[theme.colors.liturgicalGold, theme.colors.accentLight]}
-              style={styles.logoContainer}
-            >
-              <Heart size={40} color={theme.colors.primary} />
-            </LinearGradient>
-            <Text style={[styles.title, { color: theme.colors.liturgicalWhite }]}>
-              Acompañamiento Espiritual
+            <View style={[styles.logoContainer, { backgroundColor: theme.colors.surface }]}>
+              <Smartphone size={40} color={theme.colors.primary} />
+            </View>
+            <Text style={[styles.title, { color: theme.colors.surface }]}>
+              Welcome
             </Text>
-            <Text style={[styles.subtitle, { color: theme.colors.accentLight }]}>
-              {isSignUp ? 'Únete a nuestra comunidad católica' : 'Bienvenido a tu guía católica con IA'}
+            <Text style={[styles.subtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+              {isSignUp ? 'Create your account' : 'Sign in to continue'}
             </Text>
           </View>
 
@@ -108,8 +103,8 @@ export default function LoginScreen() {
                 <UserPlus size={20} color={theme.colors.primary} style={styles.inputIcon} />
                 <TextInput
                   style={[styles.input, { color: theme.colors.text }]}
-                  placeholder="Nombre completo"
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholder="Full name"
+                  placeholderTextColor={theme.colors.textSecondary}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -122,8 +117,8 @@ export default function LoginScreen() {
               <Mail size={20} color={theme.colors.primary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: theme.colors.text }]}
-                placeholder="Correo electrónico"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholder="Email address"
+                placeholderTextColor={theme.colors.textSecondary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -136,8 +131,8 @@ export default function LoginScreen() {
               <Lock size={20} color={theme.colors.primary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1, color: theme.colors.text }]}
-                placeholder="Contraseña"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholder="Password"
+                placeholderTextColor={theme.colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -168,7 +163,7 @@ export default function LoginScreen() {
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.buttonText}>
-                    {isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                    {isSignUp ? 'Create Account' : 'Sign In'}
                   </Text>
                 )}
               </LinearGradient>
@@ -179,26 +174,26 @@ export default function LoginScreen() {
               onPress={() => setIsSignUp(!isSignUp)}
               disabled={isLoading}
             >
-              <Text style={[styles.switchModeText, { color: theme.colors.accentLight }]}>
+              <Text style={[styles.switchModeText, { color: 'rgba(255, 255, 255, 0.8)' }]}>
                 {isSignUp 
-                  ? '¿Ya tienes cuenta? Inicia sesión' 
-                  : '¿No tienes cuenta? Regístrate'}
+                  ? 'Already have an account? Sign in' 
+                  : 'Don\'t have an account? Sign up'}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.divider}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
-              <Text style={[styles.dividerText, { color: theme.colors.accentLight }]}>
-                o continúa con
+              <View style={[styles.dividerLine, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]} />
+              <Text style={[styles.dividerText, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                or continue with
               </Text>
-              <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+              <View style={[styles.dividerLine, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]} />
             </View>
 
             {/* Social Sign In */}
             <View style={styles.socialButtons}>
               <TouchableOpacity
                 style={styles.socialButton}
-                onPress={handleAppleSignIn}
+                onPress={() => handleSocialAuth('apple')}
                 disabled={isLoading}
               >
                 <LinearGradient
@@ -211,7 +206,7 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={styles.socialButton}
-                onPress={handleGoogleSignIn}
+                onPress={() => handleSocialAuth('google')}
                 disabled={isLoading}
               >
                 <LinearGradient
@@ -221,12 +216,25 @@ export default function LoginScreen() {
                   <Text style={styles.socialButtonText}>G Google</Text>
                 </LinearGradient>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialAuth('facebook')}
+                disabled={isLoading}
+              >
+                <LinearGradient
+                  colors={['#1877F2', '#42A5F5']}
+                  style={styles.socialButtonGradient}
+                >
+                  <Text style={styles.socialButtonText}>f Facebook</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
 
             {!isSignUp && (
               <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={[styles.forgotPasswordText, { color: theme.colors.accentLight }]}>
-                  ¿Olvidaste tu contraseña?
+                <Text style={[styles.forgotPasswordText, { color: 'rgba(255, 255, 255, 0.8)' }]}>
+                  Forgot your password?
                 </Text>
               </TouchableOpacity>
             )}
@@ -235,10 +243,10 @@ export default function LoginScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: 'rgba(255, 255, 255, 0.7)' }]}>
-              Al continuar, aceptas nuestros términos de servicio
+              By continuing, you agree to our terms of service
             </Text>
             <Text style={[styles.footerSubtext, { color: 'rgba(255, 255, 255, 0.7)' }]}>
-              y política de privacidad
+              and privacy policy
             </Text>
           </View>
         </View>
@@ -272,7 +280,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
@@ -280,7 +288,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    fontStyle: 'italic',
   },
   form: {
     marginBottom: 40,
@@ -343,7 +350,7 @@ const styles = StyleSheet.create({
   socialButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
     marginBottom: 24,
   },
   socialButton: {
@@ -352,11 +359,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   socialButtonGradient: {
-    padding: 14,
+    padding: 12,
     alignItems: 'center',
   },
   socialButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
   },

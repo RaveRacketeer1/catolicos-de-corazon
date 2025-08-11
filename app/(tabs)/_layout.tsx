@@ -1,36 +1,24 @@
-import { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React from 'react';
 import { Tabs } from 'expo-router';
-import { router } from 'expo-router';
-import { Heart, MessageCircle, Calendar, Users, Settings } from 'lucide-react-native';
-import { useAuth } from '@/contexts/AuthContext';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { BarChart3, MessageCircle, Settings } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
-  const { isAuthenticated, isLoading, hasActiveSubscription } = useAuth();
   const { theme } = useTheme();
+  const { isAuthenticated, hasActiveSubscription, isLoading } = useAuth();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
-    } else if (!isLoading && isAuthenticated && !hasActiveSubscription) {
-      router.replace('/subscription');
-    }
-  }, [isAuthenticated, isLoading, hasActiveSubscription]);
-
+  // Show loading state while auth is being determined
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.liturgicalGold} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={[styles.loadingText, { color: theme.colors.text }]}>
-          Cargando...
+          Loading...
         </Text>
       </View>
     );
-  }
-
-  if (!isAuthenticated || !hasActiveSubscription) {
-    return null;
   }
 
   return (
@@ -38,48 +26,49 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.primary,
-          borderTopColor: theme.colors.primaryLight,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
           paddingVertical: 5,
+          display: (isAuthenticated && hasActiveSubscription) ? 'flex' : 'none',
         },
-        tabBarActiveTintColor: theme.colors.liturgicalGold,
-        tabBarInactiveTintColor: theme.colors.primaryLight,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
         }
       }}>
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
-          title: 'Oración',
+          title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <Heart size={size} color={color} />
+            <BarChart3 size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="page1"
         options={{
-          title: 'Director Espiritual',
+          title: 'Content',
           tabBarIcon: ({ size, color }) => (
             <MessageCircle size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="liturgy"
+        name="chat"
         options={{
-          title: 'Liturgia',
+          title: 'AI Chat',
           tabBarIcon: ({ size, color }) => (
-            <Calendar size={size} color={color} />
+            <MessageCircle size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: 'Perfil',
+          title: 'Settings',
           tabBarIcon: ({ size, color }) => (
             <Settings size={size} color={color} />
           ),
@@ -96,7 +85,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
 });

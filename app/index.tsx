@@ -23,11 +23,11 @@ export default function Index() {
 
   return (
     <LinearGradient
-      colors={[theme.colors.primary, theme.colors.primaryLight]}
+      colors={[theme.colors.primaryDark, theme.colors.primary]}
       style={styles.container}
     >
       <View style={styles.content}>
-        <ActivityIndicator size="large" color={theme.colors.surface} />
+        <ActivityIndicator size="large" color={theme.colors.liturgicalGold} />
       </View>
     </LinearGradient>
   );

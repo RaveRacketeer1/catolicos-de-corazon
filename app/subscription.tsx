@@ -10,11 +10,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Crown, Check, Sparkles, MessageCircle, Calendar, Shield, Zap } from 'lucide-react-native';
+import { Crown, Check, Sparkles, Heart, MessageCircle, Calendar, Shield, Zap } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useStripe } from '@stripe/stripe-react-native';
-import { api } from '@/services/api';
 
 type PlanType = 'monthly' | 'annual';
 
@@ -23,107 +21,82 @@ export default function SubscriptionScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const plans = {
     monthly: {
-      id: 'price_monthly',
-      name: 'Monthly Plan',
-      price: '$9.99',
-      period: '/month',
+      id: 'monthly',
+      name: 'Plan Mensual',
+      price: '$4.99',
+      period: '/mes',
       savings: null,
-      description: 'Full access with monthly billing',
-      priceId: process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || 'price_monthly_demo',
+      description: 'Acceso completo con facturación mensual',
     },
     annual: {
-      id: 'price_annual',
-      name: 'Annual Plan',
-      price: '$99.99',
-      period: '/year',
-      savings: 'Save $19.89',
-      description: 'Best value - 2 months free',
-      priceId: process.env.EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID || 'price_annual_demo',
+      id: 'annual',
+      name: 'Plan Anual',
+      price: '$49.90',
+      period: '/año',
+      savings: 'Ahorra $9.98',
+      description: 'Mejor valor - 2 meses gratis',
     },
   };
 
   const features = [
     {
       icon: Sparkles,
-      title: 'Unlimited AI Chat',
-      description: 'Unlimited conversations with Gemini 2.5 Flash-Lite',
+      title: 'IA Espiritual Ilimitada',
+      description: 'Oraciones personalizadas y dirección espiritual sin límites',
     },
     {
       icon: MessageCircle,
-      title: '100K Monthly Tokens',
-      description: 'Generous token allowance for AI interactions',
+      title: 'Chat con Director Espiritual',
+      description: 'Conversaciones profundas guiadas por doctrina católica',
     },
     {
       icon: Calendar,
-      title: 'Premium Features',
-      description: 'Access to all app features and content',
+      title: 'Calendario Litúrgico Completo',
+      description: 'Lecturas diarias, santos y celebraciones',
+    },
+    {
+      icon: Heart,
+      title: 'Oraciones Personalizadas',
+      description: 'Generadas específicamente para tus intenciones',
     },
     {
       icon: Shield,
-      title: 'Priority Support',
-      description: 'Fast response times and dedicated support',
+      title: 'Contenido Doctrinalmente Verificado',
+      description: 'Respuestas basadas en magisterio católico auténtico',
     },
     {
       icon: Zap,
-      title: 'Advanced Analytics',
-      description: 'Detailed usage metrics and insights',
+      title: 'Acceso Prioritario',
+      description: 'Respuestas más rápidas y funciones exclusivas',
     },
   ];
 
   const handleSubscribe = async () => {
-    if (!user) {
-      Alert.alert('Error', 'Please sign in to continue');
-      return;
-    }
-
     setIsLoading(true);
     
     try {
-      // Create Stripe Checkout session via server
-      const response = await api.createCheckoutSession(plans[selectedPlan].priceId);
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Update subscription in Firebase
+      await updateSubscription(selectedPlan);
       
-      // Initialize payment sheet
-      const { error: initError } = await initPaymentSheet({
-        merchantDisplayName: 'Your App Name',
-        paymentIntentClientSecret: response.data.clientSecret,
-        defaultBillingDetails: {
-          email: user.email,
-          name: user.name,
-        },
-      });
-
-      if (initError) {
-        throw new Error(initError.message);
-      }
-
-      // Present payment sheet
-      const { error: paymentError } = await presentPaymentSheet();
-
-      if (paymentError) {
-        if (paymentError.code !== 'Canceled') {
-          throw new Error(paymentError.message);
-        }
-        return; // User canceled
-      }
-
-      // Payment successful
       Alert.alert(
-        'Subscription Started',
-        `Your 7-day free trial has begun. After that, you'll be charged ${plans[selectedPlan].price}${plans[selectedPlan].period}.`,
+        'Suscripción Iniciada',
+        `Tu prueba gratuita de 7 días ha comenzado. Después se cobrará ${plans[selectedPlan].price}${plans[selectedPlan].period}.`,
         [
           {
-            text: 'Continue',
+            text: 'Continuar',
             onPress: () => router.replace('/(tabs)'),
           },
         ]
       );
-    } catch (error: any) {
-      console.error('Subscription error:', error);
-      Alert.alert('Error', error.message || 'Failed to process subscription. Please try again.');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo procesar la suscripción. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +105,15 @@ export default function SubscriptionScreen() {
   const handleRestorePurchases = async () => {
     setIsLoading(true);
     try {
-      // TODO: Implement purchase restoration
-      // In production, this would check with Stripe/App Store
-      Alert.alert('Restore Purchases', 'No previous purchases found to restore.');
+      // In production, this would check with RevenueCat/App Store
+      if (user && user.subscriptionStatus === 'active') {
+        Alert.alert('Compras Restauradas', 'Se han restaurado tus compras anteriores.');
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Sin Compras', 'No se encontraron compras anteriores para restaurar.');
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to restore purchases.');
+      Alert.alert('Error', 'No se encontraron compras anteriores.');
     } finally {
       setIsLoading(false);
     }
@@ -145,18 +122,21 @@ export default function SubscriptionScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryLight]}
+        colors={[theme.colors.primaryDark, theme.colors.primary]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <View style={[styles.logoContainer, { backgroundColor: theme.colors.surface }]}>
+          <LinearGradient
+            colors={[theme.colors.liturgicalGold, theme.colors.accentLight]}
+            style={styles.logoContainer}
+          >
             <Crown size={32} color={theme.colors.primary} />
-          </View>
-          <Text style={[styles.headerTitle, { color: theme.colors.surface }]}>
-            Premium Access
+          </LinearGradient>
+          <Text style={[styles.headerTitle, { color: theme.colors.liturgicalWhite }]}>
+            Acompañamiento Espiritual Premium
           </Text>
-          <Text style={[styles.headerSubtitle, { color: 'rgba(255, 255, 255, 0.8)' }]}>
-            Unlock unlimited AI conversations
+          <Text style={[styles.headerSubtitle, { color: theme.colors.accentLight }]}>
+            Profundiza tu fe con IA católica auténtica
           </Text>
         </View>
       </LinearGradient>
@@ -164,12 +144,12 @@ export default function SubscriptionScreen() {
       {/* Trial Banner */}
       <View style={styles.trialBanner}>
         <LinearGradient
-          colors={[theme.colors.success, theme.colors.primaryLight]}
+          colors={[theme.colors.liturgicalGold, theme.colors.accentLight]}
           style={styles.trialContent}
         >
-          <Sparkles size={20} color="#FFFFFF" />
-          <Text style={[styles.trialText, { color: '#FFFFFF' }]}>
-            🎉 FREE 7-Day Trial - Cancel Anytime
+          <Sparkles size={20} color={theme.colors.primary} />
+          <Text style={[styles.trialText, { color: theme.colors.primary }]}>
+            🎉 Prueba GRATIS por 7 días - Cancela cuando quieras
           </Text>
         </LinearGradient>
       </View>
@@ -177,77 +157,127 @@ export default function SubscriptionScreen() {
       {/* Pricing Plans */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Choose Your Plan
+          Elige tu Plan
         </Text>
         
         <View style={styles.plansContainer}>
-          {Object.entries(plans).map(([key, plan]) => (
-            <TouchableOpacity
-              key={key}
-              style={[
-                styles.planCard,
-                selectedPlan === key && styles.planCardSelected,
-              ]}
-              onPress={() => setSelectedPlan(key as PlanType)}
+          {/* Monthly Plan */}
+          <TouchableOpacity
+            style={[
+              styles.planCard,
+              selectedPlan === 'monthly' && styles.planCardSelected,
+            ]}
+            onPress={() => setSelectedPlan('monthly')}
+          >
+            <LinearGradient
+              colors={
+                selectedPlan === 'monthly'
+                  ? [theme.colors.primary, theme.colors.primaryLight]
+                  : [theme.colors.surface, theme.colors.card]
+              }
+              style={styles.planContent}
             >
-              <LinearGradient
-                colors={
-                  selectedPlan === key
-                    ? [theme.colors.primary, theme.colors.primaryLight]
-                    : [theme.colors.surface, theme.colors.card]
-                }
-                style={styles.planContent}
-              >
-                {plan.savings && (
-                  <View style={styles.savingsBadge}>
-                    <Text style={[styles.savingsText, { color: theme.colors.success }]}>
-                      {plan.savings}
-                    </Text>
+              <View style={styles.planHeader}>
+                <Text style={[
+                  styles.planName,
+                  { color: selectedPlan === 'monthly' ? theme.colors.liturgicalWhite : theme.colors.text }
+                ]}>
+                  {plans.monthly.name}
+                </Text>
+                {selectedPlan === 'monthly' && (
+                  <View style={styles.selectedIndicator}>
+                    <Check size={16} color={theme.colors.liturgicalGold} />
                   </View>
                 )}
-                <View style={styles.planHeader}>
-                  <Text style={[
-                    styles.planName,
-                    { color: selectedPlan === key ? theme.colors.surface : theme.colors.text }
-                  ]}>
-                    {plan.name}
-                  </Text>
-                  {selectedPlan === key && (
-                    <View style={styles.selectedIndicator}>
-                      <Check size={16} color={theme.colors.success} />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.priceContainer}>
-                  <Text style={[
-                    styles.price,
-                    { color: selectedPlan === key ? theme.colors.surface : theme.colors.text }
-                  ]}>
-                    {plan.price}
-                  </Text>
-                  <Text style={[
-                    styles.period,
-                    { color: selectedPlan === key ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary }
-                  ]}>
-                    {plan.period}
-                  </Text>
-                </View>
+              </View>
+              <View style={styles.priceContainer}>
                 <Text style={[
-                  styles.planDescription,
-                  { color: selectedPlan === key ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary }
+                  styles.price,
+                  { color: selectedPlan === 'monthly' ? theme.colors.liturgicalWhite : theme.colors.text }
                 ]}>
-                  {plan.description}
+                  {plans.monthly.price}
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ))}
+                <Text style={[
+                  styles.period,
+                  { color: selectedPlan === 'monthly' ? theme.colors.accentLight : theme.colors.textSecondary }
+                ]}>
+                  {plans.monthly.period}
+                </Text>
+              </View>
+              <Text style={[
+                styles.planDescription,
+                { color: selectedPlan === 'monthly' ? theme.colors.accentLight : theme.colors.textSecondary }
+              ]}>
+                {plans.monthly.description}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Annual Plan */}
+          <TouchableOpacity
+            style={[
+              styles.planCard,
+              selectedPlan === 'annual' && styles.planCardSelected,
+            ]}
+            onPress={() => setSelectedPlan('annual')}
+          >
+            <LinearGradient
+              colors={
+                selectedPlan === 'annual'
+                  ? [theme.colors.primary, theme.colors.primaryLight]
+                  : [theme.colors.surface, theme.colors.card]
+              }
+              style={styles.planContent}
+            >
+              {plans.annual.savings && (
+                <View style={styles.savingsBadge}>
+                  <Text style={[styles.savingsText, { color: theme.colors.liturgicalGold }]}>
+                    {plans.annual.savings}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.planHeader}>
+                <Text style={[
+                  styles.planName,
+                  { color: selectedPlan === 'annual' ? theme.colors.liturgicalWhite : theme.colors.text }
+                ]}>
+                  {plans.annual.name}
+                </Text>
+                {selectedPlan === 'annual' && (
+                  <View style={styles.selectedIndicator}>
+                    <Check size={16} color={theme.colors.liturgicalGold} />
+                  </View>
+                )}
+              </View>
+              <View style={styles.priceContainer}>
+                <Text style={[
+                  styles.price,
+                  { color: selectedPlan === 'annual' ? theme.colors.liturgicalWhite : theme.colors.text }
+                ]}>
+                  {plans.annual.price}
+                </Text>
+                <Text style={[
+                  styles.period,
+                  { color: selectedPlan === 'annual' ? theme.colors.accentLight : theme.colors.textSecondary }
+                ]}>
+                  {plans.annual.period}
+                </Text>
+              </View>
+              <Text style={[
+                styles.planDescription,
+                { color: selectedPlan === 'annual' ? theme.colors.accentLight : theme.colors.textSecondary }
+              ]}>
+                {plans.annual.description}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Features List */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Premium Features
+          Características Premium
         </Text>
         
         <View style={styles.featuresContainer}>
@@ -294,7 +324,7 @@ export default function SubscriptionScreen() {
               <>
                 <Crown size={20} color="#FFFFFF" />
                 <Text style={styles.subscribeText}>
-                  Start 7-Day Free Trial
+                  Comenzar Prueba Gratuita de 7 Días
                 </Text>
               </>
             )}
@@ -302,7 +332,7 @@ export default function SubscriptionScreen() {
         </TouchableOpacity>
         
         <Text style={[styles.subscribeSubtext, { color: theme.colors.textSecondary }]}>
-          Then {plans[selectedPlan].price}{plans[selectedPlan].period} • Cancel anytime
+          Después {plans[selectedPlan].price}{plans[selectedPlan].period} • Cancela en cualquier momento
         </Text>
       </View>
 
@@ -314,18 +344,18 @@ export default function SubscriptionScreen() {
           disabled={isLoading}
         >
           <Text style={[styles.restoreText, { color: theme.colors.primary }]}>
-            Restore Purchases
+            Restaurar Compras
           </Text>
         </TouchableOpacity>
       </View>
 
       {/* Terms */}
       <View style={styles.footer}>
-        <Text style={[styles.termsText, { color: theme.colors.textSecondary }]}>
-          By subscribing, you agree to our terms of service and privacy policy.
+        <Text style={[styles.termsText, { color: theme.colors.textTertiary }]}>
+          Al suscribirte, aceptas nuestros términos de servicio y política de privacidad.
         </Text>
-        <Text style={[styles.termsSubtext, { color: theme.colors.textSecondary }]}>
-          Subscription will auto-renew.
+        <Text style={[styles.termsSubtext, { color: theme.colors.textTertiary }]}>
+          La suscripción se renovará automáticamente.
         </Text>
       </View>
     </ScrollView>
@@ -353,7 +383,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
@@ -361,6 +391,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   trialBanner: {
     margin: 16,
@@ -410,7 +441,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -430,7 +461,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   selectedIndicator: {
-    backgroundColor: 'rgba(76, 175, 80, 0.3)',
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
     borderRadius: 12,
     padding: 4,
   },

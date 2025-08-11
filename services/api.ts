@@ -1,16 +1,18 @@
-// API Service for Server Gateway Communication
+// API Service Configuration and Types
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.catholic-ai.app';
 
 interface ApiResponse<T> {
   data: T;
   success: boolean;
   message?: string;
   error?: string;
-  quota?: {
-    remaining: number;
-    resetTime?: string;
-  };
+}
+
+interface TokenUsage {
+  current: number;
+  limit: number;
+  resetDate: string;
 }
 
 export class ApiService {
@@ -37,7 +39,7 @@ export class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}/api${endpoint}`;
+    const url = `${this.baseURL}${endpoint}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -68,106 +70,207 @@ export class ApiService {
   }
 
   // Authentication
-  async createSession(firebaseToken: string) {
-    return this.request<{ user: any; sessionToken: string }>('/auth/session', {
+  async signInWithApple(token: string) {
+    return this.request<{ user: any; tokens: any }>('/auth/apple', {
       method: 'POST',
-      body: JSON.stringify({ firebaseToken }),
+      body: JSON.stringify({ token }),
     });
   }
 
-  // Dashboard
-  async getDashboard() {
-    return this.request<{
-      user: any;
-      usage: any;
-      limits: any;
-      stats: any;
-    }>('/dashboard');
+  async signInWithGoogle(token: string) {
+    return this.request<{ user: any; tokens: any }>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   }
 
-  // Content
-  async getPage1Content() {
-    return this.request<{
-      title: string;
-      content: string;
-      lastUpdated: string;
-    }>('/page1');
+  async refreshToken(refreshToken: string) {
+    return this.request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
   }
 
-  // Chat
+  // AI Services
+  async generatePersonalizedPrayer(intent: {
+    category: string;
+    personalContext?: string;
+    liturgicalContext?: any;
+  }) {
+    return this.request<{
+      prayer: {
+        title: string;
+        content: string;
+        source?: string;
+        tokensUsed: number;
+      };
+    }>('/ai/prayer', {
+      method: 'POST',
+      body: JSON.stringify(intent),
+    });
+  }
+
   async sendChatMessage(message: string, sessionId?: string) {
     return this.request<{
       response: string;
+      sources: string[];
       tokensUsed: number;
       sessionId: string;
-      quotaRemaining: number;
-    }>('/chat', {
+      confidence: number;
+    }>('/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ message, sessionId }),
     });
   }
 
-  async getChatHistory(sessionId?: string) {
-    const query = sessionId ? `?sessionId=${sessionId}` : '';
-    return this.request<{
-      messages: any[];
-      dailyRequestsUsed: number;
-    }>(`/chat/history${query}`);
+  async getTokenUsage() {
+    return this.request<TokenUsage>('/user/tokens');
   }
 
-  // Subscription
-  async createCheckoutSession(priceId: string) {
+  // Liturgical Services
+  async getTodaysReadings(date?: string) {
+    const queryParam = date ? `?date=${date}` : '';
     return this.request<{
-      checkoutUrl: string;
-      sessionId: string;
-      clientSecret: string;
-    }>('/subscribe', {
+      readings: {
+        firstReading: any;
+        psalm: any;
+        secondReading?: any;
+        gospel: any;
+      };
+      liturgicalInfo: any;
+      saints: any[];
+    }>(`/liturgy/readings${queryParam}`);
+  }
+
+  async getSaintOfDay(date?: string) {
+    const queryParam = date ? `?date=${date}` : '';
+    return this.request<{
+      saints: any[];
+    }>(`/liturgy/saints${queryParam}`);
+  }
+
+  async getLiturgicalCalendar(year?: number) {
+    const queryParam = year ? `?year=${year}` : '';
+    return this.request<{
+      calendar: any[];
+    }>(`/liturgy/calendar${queryParam}`);
+  }
+
+  // Community Services
+  async getPrayerIntentions(category?: string) {
+    const queryParam = category ? `?category=${category}` : '';
+    return this.request<{
+      intentions: any[];
+    }>(`/community/intentions${queryParam}`);
+  }
+
+  async addPrayerIntention(intention: {
+    content: string;
+    category: string;
+    isAnonymous: boolean;
+  }) {
+    return this.request<{
+      intention: any;
+    }>('/community/intentions', {
       method: 'POST',
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify(intention),
     });
   }
 
-  async getSubscriptionStatus() {
+  async prayForIntention(intentionId: string) {
     return this.request<{
-      subscription: any;
-      usage: any;
-    }>('/subscription/status');
-  }
-
-  async createCustomerPortalSession() {
-    return this.request<{
-      url: string;
-    }>('/subscription/portal', {
+      success: boolean;
+    }>(`/community/intentions/${intentionId}/pray`, {
       method: 'POST',
     });
   }
 
-  // Settings
-  async updateSettings(settings: any) {
+  async getCommunityGroups() {
     return this.request<{
-      settings: any;
-    }>('/settings', {
-      method: 'POST',
-      body: JSON.stringify(settings),
-    });
+      groups: any[];
+    }>('/community/groups');
   }
 
-  // Notifications
-  async getNotifications() {
+  // User Profile
+  async getUserProfile() {
     return this.request<{
-      notifications: any[];
-    }>('/notifications');
+      user: any;
+      preferences: any;
+      stats: any;
+    }>('/user/profile');
   }
 
-  async updateNotificationPreferences(preferences: any) {
+  async updateUserPreferences(preferences: any) {
     return this.request<{
       preferences: any;
-    }>('/notifications/preferences', {
-      method: 'POST',
+    }>('/user/preferences', {
+      method: 'PUT',
       body: JSON.stringify(preferences),
+    });
+  }
+
+  async getUserStats() {
+    return this.request<{
+      prayersGenerated: number;
+      chatSessions: number;
+      tokensUsed: number;
+      dayStreak: number;
+    }>('/user/stats');
+  }
+
+  // Subscription Management
+  async getSubscriptionStatus() {
+    return this.request<{
+      subscription: {
+        tier: string;
+        status: string;
+        renewalDate: string;
+        cost: string;
+      };
+    }>('/user/subscription');
+  }
+
+  async updateSubscription(subscriptionData: any) {
+    return this.request<{
+      subscription: any;
+    }>('/user/subscription', {
+      method: 'PUT',
+      body: JSON.stringify(subscriptionData),
     });
   }
 }
 
 // Singleton instance
 export const api = ApiService.getInstance();
+
+// Error handling utilities
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public errorCode?: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export const handleApiError = (error: any): ApiError => {
+  if (error instanceof ApiError) {
+    return error;
+  }
+
+  if (error.response) {
+    return new ApiError(
+      error.response.data?.message || 'API request failed',
+      error.response.status,
+      error.response.data?.code
+    );
+  }
+
+  if (error.request) {
+    return new ApiError('Network error - please check your connection');
+  }
+
+  return new ApiError(error.message || 'Unknown error occurred');
+};

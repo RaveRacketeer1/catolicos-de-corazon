@@ -1,24 +1,36 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { ChartBar as BarChart3, MessageCircle, Settings } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
+import { Tabs } from 'expo-router';
+import { router } from 'expo-router';
+import { Heart, MessageCircle, Calendar, Users, Settings } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function TabLayout() {
+  const { isAuthenticated, isLoading, hasActiveSubscription } = useAuth();
   const { theme } = useTheme();
-  const { isAuthenticated, hasActiveSubscription, isLoading } = useAuth();
 
-  // Show loading state while auth is being determined
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    } else if (!isLoading && isAuthenticated && !hasActiveSubscription) {
+      router.replace('/subscription');
+    }
+  }, [isAuthenticated, isLoading, hasActiveSubscription]);
+
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={theme.colors.liturgicalGold} />
         <Text style={[styles.loadingText, { color: theme.colors.text }]}>
-          Loading...
+          Cargando...
         </Text>
       </View>
     );
+  }
+
+  if (!isAuthenticated || !hasActiveSubscription) {
+    return null;
   }
 
   return (
@@ -26,49 +38,48 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
+          backgroundColor: theme.colors.primary,
+          borderTopColor: theme.colors.primaryLight,
           paddingVertical: 5,
-          display: (isAuthenticated && hasActiveSubscription) ? 'flex' : 'none',
         },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarActiveTintColor: theme.colors.liturgicalGold,
+        tabBarInactiveTintColor: theme.colors.primaryLight,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
         }
       }}>
       <Tabs.Screen
-        name="dashboard"
+        name="index"
         options={{
-          title: 'Dashboard',
+          title: 'Oración',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="page1"
-        options={{
-          title: 'Content',
-          tabBarIcon: ({ size, color }) => (
-            <MessageCircle size={size} color={color} />
+            <Heart size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'AI Chat',
+          title: 'Director Espiritual',
           tabBarIcon: ({ size, color }) => (
             <MessageCircle size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="liturgy"
         options={{
-          title: 'Settings',
+          title: 'Liturgia',
+          tabBarIcon: ({ size, color }) => (
+            <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
           tabBarIcon: ({ size, color }) => (
             <Settings size={size} color={color} />
           ),
@@ -85,8 +96,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 10,
     fontSize: 16,
-    fontWeight: '500',
   },
 });

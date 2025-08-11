@@ -5,9 +5,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   GoogleAuthProvider,
-  FacebookAuthProvider,
   signInWithCredential,
-  OAuthProvider,
 } from 'firebase/auth';
 import { 
   doc, 
@@ -25,7 +23,33 @@ import {
   increment,
 } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { User } from '@/contexts/AuthContext';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  subscriptionTier: 'trial' | 'monthly' | 'annual';
+  subscriptionStatus: 'active' | 'trial' | 'expired' | 'canceled';
+  trialEndsAt?: Date;
+  tokensUsed: number;
+  tokenLimit: number;
+  createdAt: Date;
+  preferences: {
+    theme: 'light' | 'dark' | 'auto';
+    notifications: boolean;
+    language: string;
+  };
+}
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+  tokensUsed?: number;
+  sessionId: string;
+}
 
 export class FirebaseService {
   // Authentication
@@ -38,16 +62,16 @@ export class FirebaseService {
         id: firebaseUser.uid,
         name,
         email,
-        subscriptionTier: 'free',
+        subscriptionTier: 'trial',
         subscriptionStatus: 'trial',
         trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         tokensUsed: 0,
-        tokenLimit: 10000, // Free tier: 10K tokens
+        tokenLimit: 1200000, // 1.2M tokens for trial
         createdAt: new Date(),
         preferences: {
           theme: 'auto',
           notifications: true,
-          language: 'en',
+          language: 'es',
         },
       };
 
@@ -65,36 +89,6 @@ export class FirebaseService {
       return userData;
     } catch (error: any) {
       throw new Error(this.getAuthErrorMessage(error.code));
-    }
-  }
-
-  static async signInWithApple(): Promise<User> {
-    try {
-      // TODO: Implement Apple Sign-In
-      // This requires expo-apple-authentication and proper configuration
-      throw new Error('Apple Sign-In not implemented yet');
-    } catch (error: any) {
-      throw new Error('Apple Sign-In failed: ' + error.message);
-    }
-  }
-
-  static async signInWithGoogle(): Promise<User> {
-    try {
-      // TODO: Implement Google Sign-In
-      // This requires @react-native-google-signin/google-signin
-      throw new Error('Google Sign-In not implemented yet');
-    } catch (error: any) {
-      throw new Error('Google Sign-In failed: ' + error.message);
-    }
-  }
-
-  static async signInWithFacebook(): Promise<User> {
-    try {
-      // TODO: Implement Facebook Sign-In
-      // This requires react-native-fbsdk-next
-      throw new Error('Facebook Sign-In not implemented yet');
-    } catch (error: any) {
-      throw new Error('Facebook Sign-In failed: ' + error.message);
     }
   }
 
@@ -122,7 +116,7 @@ export class FirebaseService {
   static async getUserData(userId: string): Promise<User> {
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
-      throw new Error('User not found');
+      throw new Error('Usuario no encontrado');
     }
     
     const data = userDoc.data();
@@ -136,7 +130,7 @@ export class FirebaseService {
   static async updateUserSubscription(
     userId: string, 
     subscriptionData: {
-      tier: 'premium' | 'enterprise';
+      tier: 'monthly' | 'annual';
       status: 'active';
       tokenLimit: number;
     }
@@ -162,20 +156,14 @@ export class FirebaseService {
   }
 
   // Chat Management
-  static async saveChatMessage(message: {
-    userId: string;
-    content: string;
-    isUser: boolean;
-    sessionId: string;
-    tokensUsed?: number;
-  }): Promise<void> {
+  static async saveChatMessage(message: ChatMessage): Promise<void> {
     await addDoc(collection(db, 'chatMessages'), {
       ...message,
       timestamp: serverTimestamp(),
     });
   }
 
-  static async getChatHistory(userId: string, sessionId: string, limitCount = 20): Promise<any[]> {
+  static async getChatHistory(userId: string, sessionId: string, limitCount = 20): Promise<ChatMessage[]> {
     const q = query(
       collection(db, 'chatMessages'),
       where('userId', '==', userId),
@@ -189,6 +177,36 @@ export class FirebaseService {
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate() || new Date(),
+    })) as ChatMessage[];
+  }
+
+  // Prayer Management
+  static async saveGeneratedPrayer(prayer: {
+    userId: string;
+    title: string;
+    content: string;
+    category: string;
+    tokensUsed: number;
+  }): Promise<void> {
+    await addDoc(collection(db, 'prayers'), {
+      ...prayer,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  static async getUserPrayers(userId: string, limitCount = 10): Promise<any[]> {
+    const q = query(
+      collection(db, 'prayers'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(),
     }));
   }
 
@@ -196,19 +214,19 @@ export class FirebaseService {
   private static getAuthErrorMessage(errorCode: string): string {
     switch (errorCode) {
       case 'auth/user-not-found':
-        return 'User not found';
+        return 'Usuario no encontrado';
       case 'auth/wrong-password':
-        return 'Incorrect password';
+        return 'Contraseña incorrecta';
       case 'auth/email-already-in-use':
-        return 'This email is already registered';
+        return 'Este email ya está registrado';
       case 'auth/weak-password':
-        return 'Password must be at least 6 characters';
+        return 'La contraseña debe tener al menos 6 caracteres';
       case 'auth/invalid-email':
-        return 'Invalid email address';
+        return 'Email inválido';
       case 'auth/too-many-requests':
-        return 'Too many attempts. Please try again later';
+        return 'Demasiados intentos. Intenta más tarde';
       default:
-        return 'Authentication error. Please try again';
+        return 'Error de autenticación. Intenta nuevamente';
     }
   }
 }

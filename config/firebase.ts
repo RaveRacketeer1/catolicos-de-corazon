@@ -5,11 +5,9 @@ import { getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Check if Firebase config is available and valid
+// Check if Firebase config is available
 const hasValidConfig = process.env.EXPO_PUBLIC_FIREBASE_API_KEY && 
-  process.env.EXPO_PUBLIC_FIREBASE_API_KEY !== 'demo-api-key' &&
-  process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID &&
-  process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID !== 'demo-project';
+  process.env.EXPO_PUBLIC_FIREBASE_API_KEY !== 'demo-api-key';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -20,7 +18,7 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase only with valid config
+// Initialize Firebase
 let app;
 let auth;
 let db;
@@ -44,13 +42,9 @@ if (hasValidConfig) {
     
     // Initialize Functions
     functions = getFunctions(app);
-    
-    console.log('✅ Firebase initialized successfully');
   } catch (error) {
-    console.warn('⚠️ Firebase initialization failed:', error);
+    console.warn('Firebase initialization failed:', error);
   }
-} else {
-  console.warn('⚠️ Firebase running in demo mode - configure .env for production');
 }
 
 export { auth, db, functions, hasValidConfig };

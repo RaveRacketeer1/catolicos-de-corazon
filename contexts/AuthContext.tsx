@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { hasValidConfig } from '@/config/firebase';
 
+// Mock user type for demo mode
 export interface User {
   id: string;
   name: string;
   email: string;
-  subscriptionTier: 'free' | 'premium' | 'enterprise';
-  subscriptionStatus: 'trial' | 'active' | 'inactive' | 'canceled';
+  subscriptionTier: 'trial' | 'monthly' | 'annual';
+  subscriptionStatus: 'trial' | 'active' | 'inactive';
   trialEndsAt?: Date;
   tokensUsed: number;
   tokenLimit: number;
@@ -26,9 +27,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
   signOut: () => Promise<void>;
-  updateSubscription: (tier: 'premium' | 'enterprise') => Promise<void>;
+  updateSubscription: (tier: 'monthly' | 'annual') => Promise<void>;
   updateTokenUsage: (tokens: number) => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -41,40 +41,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-    
+    // Initialize auth state
     const initializeAuth = async () => {
       if (hasValidConfig) {
         try {
           const { FirebaseService } = await import('@/services/firebase');
           const unsubscribe = FirebaseService.onAuthStateChanged((userData) => {
-            if (isMounted) {
-              setUser(userData);
-              setIsLoading(false);
-              setIsInitialized(true);
-            }
+            setUser(userData);
+            setIsLoading(false);
+            setIsInitialized(true);
           });
           return unsubscribe;
         } catch (error) {
           console.warn('Firebase service not available:', error);
-          if (isMounted) {
-            setIsLoading(false);
-            setIsInitialized(true);
-          }
-        }
-      } else {
-        // Demo mode - no real authentication
-        if (isMounted) {
           setIsLoading(false);
           setIsInitialized(true);
         }
+      } else {
+        // Demo mode - no real authentication
+        setIsLoading(false);
+        setIsInitialized(true);
       }
     };
 
     const cleanup = initializeAuth();
     
     return () => {
-      isMounted = false;
       cleanup?.then(unsubscribe => unsubscribe?.());
     };
   }, []);
@@ -83,16 +75,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     id: 'demo-user-' + Date.now(),
     name,
     email,
-    subscriptionTier: 'free',
+    subscriptionTier: 'trial',
     subscriptionStatus: 'trial',
     trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     tokensUsed: 0,
-    tokenLimit: 100000,
+    tokenLimit: 1200000,
     createdAt: new Date(),
     preferences: {
       theme: 'auto',
       notifications: true,
-      language: 'en',
+      language: 'es',
     },
   });
 
@@ -105,13 +97,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
       } else {
         // Demo mode
-        const demoUser = createDemoUser(email, 'Demo User');
+        const demoUser = createDemoUser(email, 'Usuario Demo');
         setUser(demoUser);
       }
     } catch (error: any) {
       if (!hasValidConfig) {
         // In demo mode, always succeed
-        const demoUser = createDemoUser(email, 'Demo User');
+        const demoUser = createDemoUser(email, 'Usuario Demo');
         setUser(demoUser);
       } else {
         throw error;
@@ -149,21 +141,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithApple = async () => {
     setIsLoading(true);
     try {
-      if (hasValidConfig) {
-        const { FirebaseService } = await import('@/services/firebase');
-        const userData = await FirebaseService.signInWithApple();
-        setUser(userData);
-      } else {
-        const demoUser = createDemoUser('user@icloud.com', 'Apple User');
-        setUser(demoUser);
-      }
+      const demoUser = createDemoUser('usuario@icloud.com', 'Usuario Apple');
+      setUser(demoUser);
     } catch (error: any) {
-      if (!hasValidConfig) {
-        const demoUser = createDemoUser('user@icloud.com', 'Apple User');
-        setUser(demoUser);
-      } else {
-        throw error;
-      }
+      throw new Error('Error al iniciar sesión con Apple');
     } finally {
       setIsLoading(false);
     }
@@ -172,44 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     setIsLoading(true);
     try {
-      if (hasValidConfig) {
-        const { FirebaseService } = await import('@/services/firebase');
-        const userData = await FirebaseService.signInWithGoogle();
-        setUser(userData);
-      } else {
-        const demoUser = createDemoUser('user@gmail.com', 'Google User');
-        setUser(demoUser);
-      }
+      const demoUser = createDemoUser('usuario@gmail.com', 'Usuario Google');
+      setUser(demoUser);
     } catch (error: any) {
-      if (!hasValidConfig) {
-        const demoUser = createDemoUser('user@gmail.com', 'Google User');
-        setUser(demoUser);
-      } else {
-        throw error;
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signInWithFacebook = async () => {
-    setIsLoading(true);
-    try {
-      if (hasValidConfig) {
-        const { FirebaseService } = await import('@/services/firebase');
-        const userData = await FirebaseService.signInWithFacebook();
-        setUser(userData);
-      } else {
-        const demoUser = createDemoUser('user@facebook.com', 'Facebook User');
-        setUser(demoUser);
-      }
-    } catch (error: any) {
-      if (!hasValidConfig) {
-        const demoUser = createDemoUser('user@facebook.com', 'Facebook User');
-        setUser(demoUser);
-      } else {
-        throw error;
-      }
+      throw new Error('Error al iniciar sesión con Google');
     } finally {
       setIsLoading(false);
     }
@@ -227,11 +174,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateSubscription = async (tier: 'premium' | 'enterprise') => {
+  const updateSubscription = async (tier: 'monthly' | 'annual') => {
     if (!user) return;
 
     try {
-      const tokenLimit = tier === 'enterprise' ? 500000 : 100000;
+      const tokenLimit = tier === 'annual' ? 2000000 : 1200000;
       
       if (hasValidConfig) {
         const { FirebaseService } = await import('@/services/firebase');
@@ -286,7 +233,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signInWithApple,
     signInWithGoogle,
-    signInWithFacebook,
     signOut,
     updateSubscription,
     updateTokenUsage,

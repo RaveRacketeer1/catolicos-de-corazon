@@ -105,3 +105,5 @@ app.listen(PORT, () => {
   console.log(`🔥 Firebase: ${firebaseConfig.projectId}`);
   console.log(`📊 Redis: ${redis ? 'Connected' : 'Firestore fallback'}`);
 });
+
+export { redis }

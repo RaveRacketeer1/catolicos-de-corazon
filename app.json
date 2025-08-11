@@ -28,7 +28,12 @@
       "expo-router",
       "expo-font",
       "expo-apple-authentication",
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.yourcompany.firebasestripeapp"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

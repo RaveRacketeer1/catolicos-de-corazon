@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { BarChart3, MessageCircle, Settings } from 'lucide-react-native';
+import { ChartBar as BarChart3, MessageCircle, Settings } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 
